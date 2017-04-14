@@ -5,7 +5,7 @@ RUN apt-get -y update
 RUN apt-get autoremove -y
 RUN apt-get -fy install
 RUN apt-get install -y build-essential gcc g++ make git autoconf automake re2c wget cron bzip2 libzip-dev libc6-dev file rcconf flex vim nano bison m4 gawk less make cpp binutils diffutils unzip tar bzip2 python-docutils automake autotools-dev libedit-dev libjemalloc-dev libncurses-dev libpcre3-dev libtool pkg-config python-docutils python-sphinx graphviz
-RUN apt-get installl -y supervisor
+RUN apt-get install -y supervisor
 RUN cd /tmp
 RUN wget https://repo.varnish-cache.org/pkg/5.0.0/varnish_5.0.0-1_amd64.deb
 RUN wget https://repo.varnish-cache.org/pkg/5.0.0/varnish-dev_5.0.0-1_amd64.deb
