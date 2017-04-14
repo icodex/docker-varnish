@@ -1,0 +1,55 @@
+#!/bin/bash
+VARNISH_BACKEND_TMP=/tmp/varnish_backend.conf
+
+if [ "${VARNISH_CNF}" != ""  ]; then
+        wget -O /tmp/varnish_vcl.tgz ${VARNISH_CNF}
+        tar -zxf /tmp/varnish_vcl.tgz -C /etc/varnish/
+else
+        /bin/cp -a /docker/varnish/* /etc/varnish/
+fi
+
+if [ "${_VARNISH_CACHE_LIMIT}" != ""  ]; then
+	_VARNISH_CACHE_LIMIT=`echo ${VARNISH_CACHE_LIMIT} |tr -d 'M'`
+	LIMIT=`awk 'BEGIN{printf "%.0f\n",'${_VARNISH_CACHE_LIMIT}'*'1048576'}'`
+
+	sed -i "s:134217728:${LIMIT}:g" "/etc/varnish/default.vcl"
+fi
+
+echo -e ${VARNISH_BACKEND}|tr ';' '\n' > ${VARNISH_BACKEND_TMP}
+
+cat > /etc/varnish/backend_directors.vcl <<END
+# Setup the dynamic backend servers
+    new cluster = directors.round_robin();
+END
+
+cat > /etc/varnish/backends.vcl <<END
+# Some backend servers
+
+END
+
+ORDER=1
+while read LINE
+do
+
+B_L=`echo $LINE|cut -d ":" -f 1`
+B_P=`echo $LINE|cut -d ":" -f 2`
+
+cat >> /etc/varnish/backends.vcl <<END
+backend backend${ORDER} {
+   .host = "${B_L}";
+   .port = "${B_P}";
+   .probe = healthcheck;
+   .first_byte_timeout = 300s;  # How long to wait before we receive a first byte from our backend?
+   .connect_timeout = 5s;  # How long to wait for a backend connection?
+   .between_bytes_timeout = 5s;  # How long to wait between bytes received from our backend?
+}
+
+END
+cat >> /etc/varnish/backend_directors.vcl <<END
+    cluster.add_backend(backend${ORDER});
+END
+ORDER=$(($ORDER+1))
+done < ${VARNISH_BACKEND_TMP}
+
+echo "################################### Start varnish  ###################################"
+/usr/sbin/varnishd -F -P /var/run/varnish.pid -f /etc/varnish/default.vcl -a ${VARNISH_FRONT} -T 127.0.0.1:6082 -S /etc/varnish/secret ${VARNISHD_PARAMS} -p thread_pools=4 -p thread_pool_min=200 -p thread_pool_max=4000 -p thread_pool_add_delay=2 -p thread_pool_timeout=300 -p fetch_maxchunksize=262144 -p http_max_hdr=256 -p listen_depth=4096 -p http_req_hdr_len=16k -p http_resp_hdr_len=16k -p cli_timeout=25 -p timeout_idle=60 -p timeout_linger=1 -p send_timeout=1800 -p lru_interval=120

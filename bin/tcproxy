@@ -1,0 +1,26 @@
+#!/bin/bash
+TCPROXY_TMP=/tmp/tcproxy.conf
+
+check_proc(){
+if [ ! -n "$(ps -ef |grep tcproxy |grep -v "grep")" ] ; then
+     echo "Start TCPROXY failed"
+     exit 0
+fi
+}
+
+if [ "${TCPROXY}" != ""  ]; then
+
+echo -e $TCPROXY|tr ';' '\n' > $TCPROXY_TMP
+echo "################################### Start TCPROXY  ###################################"
+while read LINE
+do
+tcproxy -d "$LINE"
+done < $TCPROXY_TMP
+
+while :
+do
+    check_proc
+    sleep 3
+done
+
+fi
