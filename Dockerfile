@@ -19,7 +19,7 @@ RUN chmod +x /docker/bin/*
 RUN ls -lh /docker
 RUN ln -sf /docker/bin/tcproxy.bin /usr/local/sbin/tcproxy
 
-RUN cp /docker/supervisord.ini /etc/supervisord.d/supervisord.ini
+RUN cp /docker/supervisord.conf /etc/supervisor/supervisord.conf
 
 ENV VARNISH_CNF ""
 ENV VARNISH_BACKEND "1.2.3.4:80;2.4.6.8:80"
